@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YOLO Object Detector</title>
+  
+  <!-- Premium Google Fonts imports (Inter, JetBrains Mono, Space Grotesk) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons CDN for sleek vector graphics -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    /* ----------------------------------
+       MODERN MINIMAL CSS SYSTEM 
+       ---------------------------------- */
+    :root {
+      --bg-primary: #f8fafc;
+      --bg-card: #ffffff;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      
+      --accent-primary: #0f172a; /* Sophisticated deep charcoal/slate */
+      --accent-hover: #1e293b;
+      --accent-blue: #2563eb;
+      --accent-blue-light: #eff6ff;
+      
+      --border-color: #e2e8f0;
+      --border-focus: #cbd5e1;
+      
+      --color-success: #10b981;
+      --color-success-bg: #ecfdf5;
+      --color-warning: #f59e0b;
+      --color-warning-bg: #fffbeb;
+      --color-danger: #ef4444;
+      --color-danger-bg: #fef2f2;
+      
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.06), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+      
+      --font-sas: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-display: 'Space Grotesk', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+      --transition-smooth: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sas);
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Outer Wrapper for responsive design constraints */
+    .container {
+      width: 100%;
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    /* Main Modern Minimal Centered Card */
+    .app-card {
+      background-color: var(--bg-card);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-lg);
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Decorative subtle highlight badge element */
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--accent-blue-light);
+      color: var(--accent-blue);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      width: fit-content;
+      margin-bottom: -16px;
+    }
+
+    /* Title & Typography pairing */
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 15px;
+      max-width: 600px;
+    }
+
+    /* Responsive Grid Layout inside card */
+    .grid-content {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 32px;
+    }
+
+    @media (max-width: 768px) {
+      .grid-content {
+        grid-template-columns: 1fr;
+      }
+      
+      body {
+        padding: 20px 10px;
+      }
+      
+      .app-card {
+        padding: 24px;
+        gap: 24px;
+      }
+    }
+
+    /* Left Panel: Upload Trigger & Preview */
+    .panel-upload {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Drag and Drop Zone Area */
+    .drop-zone {
+      border: 2px dashed var(--border-color);
+      border-radius: var(--radius-md);
+      background-color: var(--bg-primary);
+      padding: 40px 16px;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      transition: var(--transition-smooth);
+      position: relative;
+      min-height: 240px;
+    }
+
+    .drop-zone:hover {
+      border-color: var(--accent-blue);
+      background-color: var(--accent-blue-light);
+    }
+
+    .drop-zone.drag-active {
+      border-color: var(--accent-blue);
+      background-color: var(--accent-blue-light);
+      transform: scale(0.995);
+    }
+
+    .drop-zone-icon {
+      color: var(--text-muted);
+      transition: var(--transition-smooth);
+    }
+
+    .drop-zone:hover .drop-zone-icon,
+    .drop-zone.drag-active .drop-zone-icon {
+      color: var(--accent-blue);
+      transform: translateY(-4px);
+    }
+
+    .drop-zone-text h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .drop-zone-text p {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* Hidden File Input */
+    #image-input {
+      display: none;
+    }
+
+    /* Image Preview Mode Container */
+    .preview-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-height: 240px;
+      max-height: 380px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      display: none; /* Toggled in JS */
+      border: 1px solid var(--border-color);
+      background-color: #000;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .preview-image {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      transition: var(--transition-smooth);
+    }
+
+    /* Meta tags / info displayed on top of image */
+    .preview-meta {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.3) 70%, transparent 100%);
+      color: #fff;
+      padding: 16px;
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+    }
+
+    .clear-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background-color: rgba(15, 23, 42, 0.7);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+      transition: var(--transition-smooth);
+    }
+
+    .clear-btn:hover {
+      background-color: var(--color-danger);
+      transform: scale(1.1);
+    }
+
+    /* Control buttons underneath preview */
+    .button-group {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 14px 24px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: var(--transition-smooth);
+      border: 1px solid transparent;
+      user-select: none;
+    }
+
+    .btn-outline {
+      background-color: var(--bg-card);
+      border-color: var(--border-color);
+      color: var(--text-secondary);
+    }
+
+    .btn-outline:hover {
+      border-color: var(--text-primary);
+      color: var(--text-primary);
+    }
+
+    .btn-primary {
+      background-color: var(--accent-primary);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    /* Right Panel: Results Display */
+    .panel-results {
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      background-color: var(--bg-primary);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-height: 340px;
+      max-height: 520px;
+      overflow-y: auto;
+    }
+
+    .results-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+    }
+
+    /* Empty state display inside results */
+    .results-empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--text-secondary);
+      text-align: center;
+      padding: 24px 12px;
+    }
+
+    .results-empty-state p {
+      font-size: 13px;
+      color: var(--text-muted);
+      max-width: 220px;
+    }
+
+    /* Spinner keyframes */
+    .spinner {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Dynamic Results List and Table */
+    .results-table-container {
+      display: none; /* Toggled based on prediction success */
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .results-count {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background-color: var(--border-color);
+      padding: 2px 10px;
+      border-radius: 9999px;
+      width: fit-content;
+    }
+
+    .predict-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .predict-table th {
+      text-align: left;
+      font-weight: 500;
+      color: var(--text-secondary);
+      padding: 10px 12px;
+      border-bottom: 2px solid var(--border-color);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .predict-table td {
+      padding: 12px;
+      border-bottom: 1px solid var(--border-color);
+      vertical-align: middle;
+    }
+
+    .predict-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .class-name {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-family: var(--font-sas);
+    }
+
+    .confidence-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .confidence-percentage {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      width: 48px;
+    }
+
+    .confidence-bar-outer {
+      flex: 1;
+      height: 8px;
+      background-color: #e2e8f0;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .confidence-bar-inner {
+      height: 100%;
+      border-radius: 4px;
+      background-color: var(--accent-blue);
+      width: 0%; /* Dynamic in JS */
+      transition: width 1s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Confidence bar colors based on thresholds */
+    .confidence-high { background-color: var(--color-success); }
+    .confidence-med { background-color: var(--color-warning); }
+    .confidence-low { background-color: var(--color-danger); }
+
+    /* Alert and Error Banner Layout */
+    .alert-banner {
+      display: none; /* Displayed dynamically */
+      background-color: var(--color-danger-bg);
+      border: 1px solid #fee2e2;
+      border-radius: var(--radius-md);
+      padding: 16px;
+      color: var(--color-danger);
+      font-size: 13.5px;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .alert-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+    }
+
+    .alert-details {
+      color: #7f1d1d;
+      font-size: 12.5px;
+      line-height: 1.6;
+      background-color: rgba(255, 255, 255, 0.5);
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      overflow-x: auto;
+      white-space: pre-wrap;
+    }
+
+    /* Troubleshooting Guidelines Area */
+    .troubleshoot-panel {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 32px 40px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      font-size: 14px;
+    }
+
+    @media (max-width: 768px) {
+      .troubleshoot-panel {
+        padding: 24px;
+      }
+    }
+
+    .troubleshoot-title {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .troubleshoot-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      color: var(--text-secondary);
+    }
+
+    .step-item {
+      display: flex;
+      gap: 12px;
+    }
+
+    .step-number {
+      background-color: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .step-body {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .step-body h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .code-snippet {
+      background-color: #1e293b;
+      color: #f1f5f9;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      overflow-x: auto;
+      border: 1px solid #334155;
+      margin-top: 4px;
+    }
+
+    /* Footer Credits of the UI */
+    .app-footer {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 12px;
+      font-family: var(--font-mono);
+      margin-top: -10px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- App Card -->
+    <main class="app-card" id="main-app">
+      
+      <!-- Top Decorative Active State Badge -->
+      <span class="header-badge">
+        <i data-lucide="cpu" style="width: 14px; height: 14px;"></i>
+        Direct GPU Hub
+      </span>
+
+      <!-- Title Header Block -->
+      <header>
+        <h1>YOLO Object Detector</h1>
+        <p class="subtitle">Upload high-resolution images to execute real-time object classification and confidence mapping via your localized FastAPI prediction backend.</p>
+      </header>
+
+      <!-- Grid Panel Layout -->
+      <div class="grid-content">
+        
+        <!-- Left Side: Image selectors and preview controls -->
+        <section class="panel-upload">
+          
+          <!-- Drop & Select Zone -->
+          <div class="drop-zone" id="drop-zone" onclick="triggerFileInput()">
+            <div class="drop-zone-icon">
+              <i data-lucide="cloud-upload" style="width: 48px; height: 48px;"></i>
+            </div>
+            <div class="drop-zone-text">
+              <h3>Upload Image</h3>
+              <p>Drag and drop image here, or click to browse</p>
+              <p style="font-size: 11px; margin-top: 6px; color: var(--text-muted);">Supports JPEG, PNG, or WEBP (Max 10MB)</p>
+            </div>
+          </div>
+
+          <!-- Hidden Input Node -->
+          <input type="file" id="image-input" accept="image/jpeg, image/png, image/webp" onchange="handleFileSelect(event)">
+
+          <!-- Image Preview Stage -->
+          <div class="preview-container" id="preview-container">
+            <button class="clear-btn" title="Remove image" onclick="clearSelectedImage(event)">
+              <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+            </button>
+            <img src="" id="preview-img" class="preview-image" alt="Uploaded Image Preview">
+            <div class="preview-meta">
+              <span id="meta-filename">image.jpg</span>
+              <span id="meta-dimensions">0 × 0 px</span>
+            </div>
+          </div>
+
+          <!-- Interaction Action Bar -->
+          <div class="button-group">
+            <button class="btn btn-outline" id="reset-btn" onclick="resetApp()" disabled>
+              <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+              Reset
+            </button>
+            <button class="btn btn-primary" id="predict-btn" onclick="executePrediction()" disabled>
+              <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i>
+              Predict Objects
+            </button>
+          </div>
+
+        </section>
+
+        <!-- Right Side: API Prediction Outputs and Tables -->
+        <section class="panel-results" id="panel-results">
+          
+          <!-- Sticky title -->
+          <div class="results-title">
+            <i data-lucide="activity" style="width: 18px; height: 18px; color: var(--accent-blue);"></i>
+            <span>Detections Analysis</span>
+          </div>
+
+          <!-- State: Default Waiting Upload -->
+          <div class="results-empty-state" id="state-idle">
+            <i data-lucide="image" style="width: 40px; height: 40px; color: var(--text-muted);"></i>
+            <p style="font-weight: 500; color: var(--text-secondary); margin-top: 4px;">No Content Selected</p>
+            <p>Upload an image in the upload channel to unlock object predictions.</p>
+          </div>
+
+          <!-- State: Loading Wait State -->
+          <div class="results-empty-state" id="state-loading" style="display: none;">
+            <i data-lucide="loader-2" class="spinner" style="width: 40px; height: 40px; color: var(--text-primary);"></i>
+            <p style="font-weight: 500; color: var(--text-primary); margin-top: 4px;">Analyzing Image...</p>
+            <p>Sending tensor data with multipart form payload to FastAPI detection server...</p>
+          </div>
+
+          <!-- State: No Detections Found -->
+          <div class="results-empty-state" id="state-no-detections" style="display: none;">
+            <i data-lucide="scan" style="width: 40px; height: 40px; color: var(--color-warning);"></i>
+            <p style="font-weight: 600; color: var(--text-secondary); margin-top: 4px;">No Detections Found</p>
+            <p>The YOLO neural network analyzed your image but did not find identifiable objects with high confidence.</p>
+          </div>
+
+          <!-- State: Successful Detections Table Render -->
+          <div class="results-table-container" id="state-success">
+            <div class="results-count" id="detection-count">0 Detections</div>
+            
+            <table class="predict-table">
+              <thead>
+                <tr>
+                  <th>Class Instance</th>
+                  <th>Confidence Scale</th>
+                </tr>
+              </thead>
+              <tbody id="predict-table-tbody">
+                <!-- Rows injected dynamically -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Error Feedback Banner Inside Card -->
+          <div class="alert-banner" id="error-banner">
+            <div class="alert-header">
+              <i data-lucide="circle-alert" style="width: 18px; height: 18px;"></i>
+              <span>Connection Refused</span>
+            </div>
+            <p id="error-message">Unable to reach the FastAPI prediction backend. Make sure the server resides online and CORSMiddleware layers are enabled.</p>
+            <div class="alert-details" id="error-trace">Error info appears here</div>
+          </div>
+
+        </section>
+
+      </div>
+    </main>
+
+    <!-- Bottom Instructions Module for FastAPI Setup Troubleshooting help -->
+    <section class="troubleshoot-panel" id="troubleshoot-guide">
+      <div class="troubleshoot-title">
+        <i data-lucide="help-circle" style="width: 20px; height: 20px; color: var(--accent-blue);"></i>
+        Backend Connection Guide
+      </div>
+      
+      <div class="troubleshoot-steps">
+        <div class="step-item">
+          <div class="step-number">1</div>
+          <div class="step-body">
+            <h4>Verify Backend Host Coordinates</h4>
+            <span style="line-height:1.5;">The frontend executes predictive API queries to: <code style="font-family: var(--font-mono); font-size:12.5px; background-color: var(--bg-primary); padding: 2px 6px; border-radius: 4px; color: var(--accent-blue);">http://127.0.0.1:8000/predict</code>. Verify your FastAPI microservice binds to that target.</span>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">2</div>
+          <div class="step-body">
+            <h4>Start FastAPI with Reload Mode</h4>
+            <span>Activate your localized prediction pipeline from your repository environment terminal:</span>
+            <div class="code-snippet">uvicorn main:app --host 127.0.0.1 --port 8000 --reload</div>
+          </div>
+        </div>
+
+        <div class="step-item">
+          <div class="step-number">3</div>
+          <div class="step-body">
+            <h4>Ensure CORS Policy is Active</h4>
+            <span>To allow browser fetch requests from other origins, activate CORSMiddleware in your FastAPI setup:</span>
+            <div class="code-snippet">from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Allow your frontend app to call predictions
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.post("/predict")
+async def predict(file: UploadFile = File(...)):
+    # Your YOLO model inference here
+    return [{"class": "person", "confidence": 0.94}]</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- humble footer credits -->
+    <footer class="app-footer">
+      Powered by YOLO with FastAPI • Zero Framework Static Client v1.0
+    </footer>
+
+  </div>
+
+  <script>
+    // Initialize Lucide Icons on load
+    document.addEventListener("DOMContentLoaded", () => {
+      lucide.createIcons();
+      setupDragAndDrop();
+    });
+
+    let selectedFile = null;
+
+    // Trigger local filesystem file dialogue picker
+    function triggerFileInput() {
+      document.getElementById('image-input').click();
+    }
+
+    // Set up Drag over/leave/drop handlers
+    function setupDragAndDrop() {
+      const dropZone = document.getElementById('drop-zone');
+
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropZone.classList.add('drag-active');
+        }, false);
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropZone.classList.remove('drag-active');
+        }, false);
+      });
+
+      dropZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files.length > 0) {
+          processFile(files[0]);
+        }
+      }, false);
+    }
+
+    // Process select trigger
+    function handleFileSelect(event) {
+      const files = event.target.files;
+      if (files.length > 0) {
+        processFile(files[0]);
+      }
+    }
+
+    // Handle normal file checking, sizing limits, and previews
+    function processFile(file) {
+      if (!file.type.startsWith('image/')) {
+        showLocalError('Invalid File Type', 'Please upload an image file (JPEG, PNG, or WEBP only).');
+        return;
+      }
+
+      // Check max size 10MB
+      if (file.size > 10 * 1024 * 1024) {
+        showLocalError('File Too Large', 'Please upload an image smaller than 10MB.');
+        return;
+      }
+
+      selectedFile = file;
+
+      // Reset any active error state
+      hideError();
+
+      // Read image for previewing
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = document.getElementById('preview-img');
+        img.src = e.target.result;
+
+        // Extract dimension details on load
+        img.onload = function() {
+          document.getElementById('meta-dimensions').textContent = `${this.naturalWidth} × ${this.naturalHeight} px`;
+        };
+
+        // Populate details
+        document.getElementById('meta-filename').textContent = file.name;
+
+        // Toggle Visual Preview card
+        document.getElementById('drop-zone').style.display = 'none';
+        document.getElementById('preview-container').style.display = 'block';
+
+        // Unlock action buttons
+        document.getElementById('predict-btn').removeAttribute('disabled');
+        document.getElementById('reset-btn').removeAttribute('disabled');
+      };
+      
+      reader.readAsDataURL(file);
+    }
+
+    // Clear active image preview & reset back to Dropzone format
+    function clearSelectedImage(event) {
+      if (event) {
+        event.stopPropagation();
+      }
+      
+      selectedFile = null;
+      document.getElementById('image-input').value = '';
+      
+      // Toggle views
+      document.getElementById('preview-container').style.display = 'none';
+      document.getElementById('drop-zone').style.display = 'flex';
+      
+      // Disable buttons
+      document.getElementById('predict-btn').setAttribute('disabled', 'true');
+      document.getElementById('reset-btn').setAttribute('disabled', 'true');
+      
+      resetResultsPanel();
+    }
+
+    // Direct app-wide reset command
+    function resetApp() {
+      clearSelectedImage(null);
+    }
+
+    // Helper to clear right analysis panels
+    function resetResultsPanel() {
+      hideError();
+      document.getElementById('state-idle').style.display = 'flex';
+      document.getElementById('state-loading').style.display = 'none';
+      document.getElementById('state-no-detections').style.display = 'none';
+      document.getElementById('state-success').style.display = 'none';
+    }
+
+    // Local file loader error display handler
+    function showLocalError(title, msg) {
+      const errorBanner = document.getElementById('error-banner');
+      const errorMsg = document.getElementById('error-message');
+      const errorTrace = document.getElementById('error-trace');
+
+      // Set titles
+      errorBanner.querySelector('.alert-header span').textContent = title;
+      errorMsg.textContent = msg;
+      errorTrace.style.display = 'none';
+
+      // Hide results states
+      document.getElementById('state-idle').style.display = 'none';
+      document.getElementById('state-success').style.display = 'none';
+      document.getElementById('state-no-detections').style.display = 'none';
+      document.getElementById('state-loading').style.display = 'none';
+      
+      errorBanner.style.display = 'flex';
+    }
+
+    // Helper to clear error display
+    function hideError() {
+      const errorBanner = document.getElementById('error-banner');
+      errorBanner.style.display = 'none';
+      // Reset title to standard connection message
+      errorBanner.querySelector('.alert-header span').textContent = 'Connection Refused';
+    }
+
+    // Main fetch orchestrator calling backend prediction endpoints
+    async function executePrediction() {
+      if (!selectedFile) return;
+
+      const idleState = document.getElementById('state-idle');
+      const loadingState = document.getElementById('state-loading');
+      const successState = document.getElementById('state-success');
+      const noDetectionsState = document.getElementById('state-no-detections');
+      const errorBanner = document.getElementById('error-banner');
+      const predictBtn = document.getElementById('predict-btn');
+      const resetBtn = document.getElementById('reset-btn');
+
+      // Show spinner, clear existing errors & states
+      hideError();
+      idleState.style.display = 'none';
+      successState.style.display = 'none';
+      noDetectionsState.style.display = 'none';
+      loadingState.style.display = 'flex';
+
+      // Temporarily disable buttons during transaction
+      predictBtn.setAttribute('disabled', 'true');
+      resetBtn.setAttribute('disabled', 'true');
+
+      // Create standard FormData
+      const formData = new FormData();
+      // Using 'file' as parameter. To adjust parameters if needed, please check Backend Guide.
+      formData.append('file', selectedFile);
+
+      try {
+        const response = await fetch('http://127.0.0.1:8000/predict', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP Error Status: ${response.status} ${response.statusText}`);
+        }
+
+        const rawData = await response.json();
+        const detections = parsePredictionsPayload(rawData);
+
+        // Hide loader
+        loadingState.style.display = 'none';
+
+        if (detections.length === 0) {
+          noDetectionsState.style.display = 'flex';
+        } else {
+          renderDetections(detections);
+          successState.style.display = 'flex';
+        }
+
+      } catch (err) {
+        // Hide loader
+        loadingState.style.display = 'none';
+
+        // Display highly custom network helper info
+        errorBanner.querySelector('.alert-header span').textContent = 'Prediction Target Unreachable';
+        document.getElementById('error-message').textContent = 'The system was unable to communicate with your FastAPI backend. Ensure the server is online at the address listed below and allows browser CORS requests.';
+        
+        const traceNode = document.getElementById('error-trace');
+        traceNode.style.display = 'block';
+        traceNode.textContent = `Error: ${err.message}\nDestination: http://127.0.0.1:8000/predict\nPossible causes:\n1. Your local dev server is offline (FastAPI port 8000).\n2. FastAPI doesn't have cors middleware set up correctly.\n3. The backend parameter is different (e.g. 'image' instead of 'file').`;
+        
+        errorBanner.style.display = 'flex';
+      } finally {
+        // Restore controls
+        predictBtn.removeAttribute('disabled');
+        resetBtn.removeAttribute('disabled');
+      }
+    }
+
+    // Normalizes diverse prediction schema models representing detections
+    function parsePredictionsPayload(data) {
+      let list = [];
+      
+      if (Array.isArray(data)) {
+        list = data;
+      } else if (data && typeof data === 'object') {
+        const structuralFallbacks = ['detections', 'predictions', 'results', 'objects', 'boxes', 'data'];
+        for (const attribute of structuralFallbacks) {
+          if (Array.isArray(data[attribute])) {
+            list = data[attribute];
+            break;
+          }
+        }
+      }
+
+      return list.map(item => {
+        let className = 'unknown';
+        let confidence = 0;
+
+        if (item && typeof item === 'object') {
+          // Identify class identity tags
+          if ('class' in item) className = item.class;
+          else if ('class_name' in item) className = item.class_name;
+          else if ('name' in item) className = item.name;
+          else if ('label' in item) className = item.label;
+          else if ('category' in item) className = item.category;
+
+          // Identify confidence probability weights
+          if ('confidence' in item) confidence = item.confidence;
+          else if ('conf' in item) confidence = item.conf;
+          else if ('score' in item) confidence = item.score;
+          else if ('probability' in item) confidence = item.probability;
+
+          // Standardize percent representation scales safely 
+          if (confidence > 1 && confidence <= 100) {
+            confidence = confidence / 100;
+          }
+        } else if (typeof item === 'string') {
+          className = item;
+          confidence = 1.0;
+        }
+
+        return {
+          class: className,
+          confidence: Math.max(0, Math.min(1, confidence))
+        };
+      });
+    }
+
+    // Injects detections table into DOM dynamically
+    function renderDetections(detections) {
+      const tbody = document.getElementById('predict-table-tbody');
+      tbody.innerHTML = '';
+
+      document.getElementById('detection-count').textContent = `${detections.length} Detection${detections.length === 1 ? '' : 's'}`;
+
+      detections.forEach(item => {
+        const row = document.createElement('tr');
+        
+        const colClass = document.createElement('td');
+        colClass.className = 'class-name';
+        colClass.textContent = item.class;
+        row.appendChild(colClass);
+
+        const colConf = document.createElement('td');
+        
+        const pct = Math.round(item.confidence * 100);
+        let colorClass = 'confidence-low';
+        if (pct >= 80) colorClass = 'confidence-high';
+        else if (pct >= 50) colorClass = 'confidence-med';
+
+        colConf.innerHTML = `
+          <div class="confidence-wrapper">
+            <span class="confidence-percentage">${pct}%</span>
+            <div class="confidence-bar-outer">
+              <div class="confidence-bar-inner ${colorClass}" style="width: 0%"></div>
+            </div>
+          </div>
+        `;
+        row.appendChild(colConf);
+        tbody.appendChild(row);
+
+        // Slow stagger trigger to animate progress bars loading widths visually
+        setTimeout(() => {
+          const innerBar = colConf.querySelector('.confidence-bar-inner');
+          if (innerBar) innerBar.style.width = `${pct}%`;
+        }, 50);
+      });
+    }
+  </script>
+</body>
+</html>
